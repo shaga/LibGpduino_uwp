@@ -136,6 +136,7 @@ namespace LibGPduinoTest.ViewModels
                 _initialized = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsUseRev3Cmd));
+                OnPropertyChanged(nameof(ConnectButtonText));
                 CommandSetOffset.RaiseCanExecuteChanged();
                 CommandSetAmp.RaiseCanExecuteChanged();
                 CommandLoadSettings.RaiseCanExecuteChanged();
@@ -164,6 +165,10 @@ namespace LibGPduinoTest.ViewModels
         public bool CanSelect => Manager == null;
 
         public bool IsConnected => Manager != null;
+
+        public string ScanButtonText => Scanner.IsScanning ? "Stop Scan" : "Start Scan";
+
+        public string ConnectButtonText => Initialized ? "Disconnect" : "Connect";
 
         #region ServoSettings
 
@@ -512,6 +517,12 @@ namespace LibGPduinoTest.ViewModels
                 });
             };
 
+            Scanner.FinishedScan += async (s, e) =>
+            {
+                await
+                    Dispacher.RunAsync(CoreDispatcherPriority.Normal, () => OnPropertyChanged(nameof(ScanButtonText)));
+            };
+
             ScanTimer.Interval = new TimeSpan(0, 0, 10);
             ScanTimer.Tick += (s, e) =>
             {
@@ -546,6 +557,8 @@ namespace LibGPduinoTest.ViewModels
             {
                 ScanStart();
             }
+
+            OnPropertyChanged(nameof(ScanButtonText));
         }
 
         private void ScanStart()
@@ -584,6 +597,7 @@ namespace LibGPduinoTest.ViewModels
 
             CommandScan.RaiseCanExecuteChanged();
             OnPropertyChanged(nameof(SelectedTurnMode));
+            OnPropertyChanged(nameof(ConnectButtonText));
         }
 
         private async void Connect()
@@ -665,14 +679,14 @@ namespace LibGPduinoTest.ViewModels
                     if (!IsPressedKeyLeft)
                     {
                         IsPressedKeyLeft = true;
-                        SetTurnCommand(true);
+                        SetTurnCommand(false);
                     }
                     break;
                 case VirtualKey.Right:
                     if (!IsPressedKeyRight)
                     {
                         IsPressedKeyRight = true;
-                        SetTurnCommand(false);
+                        SetTurnCommand(true);
                     }
                     break;
             }
@@ -727,16 +741,16 @@ namespace LibGPduinoTest.ViewModels
                     IsPressedKeyDown = false;
                     break;
                 case VirtualKey.Left:
-                    if (TurnState == true)
+                    if (TurnState == false)
                     {
-                        SetTurnCommand(IsPressedKeyRight ? (bool?)false : null);
+                        SetTurnCommand(IsPressedKeyRight ? (bool?)true : null);
                     }
                     IsPressedKeyLeft = false;
                     break;
                 case VirtualKey.Right:
-                    if (TurnState == false)
+                    if (TurnState == true)
                     {
-                        SetTurnCommand(IsPressedKeyLeft ? (bool?)true : null);
+                        SetTurnCommand(IsPressedKeyLeft ? (bool?)false : null);
                     }
                     IsPressedKeyRight = false;
                     break;
@@ -819,13 +833,13 @@ namespace LibGPduinoTest.ViewModels
                     SetDriveCommand(false);
                 }
 
-                if (IsPressedKeyLeft && (TurnState == true || !IsPressedKeyRight))
-                {
-                    SetTurnCommand(true);
-                }
-                else if (IsPressedKeyRight && (TurnState == false || !IsPressedKeyLeft))
+                if (IsPressedKeyLeft && (TurnState == false || !IsPressedKeyRight))
                 {
                     SetTurnCommand(false);
+                }
+                else if (IsPressedKeyRight && (TurnState == true || !IsPressedKeyLeft))
+                {
+                    SetTurnCommand(true);
                 }
             });
         }
